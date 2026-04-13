@@ -129,7 +129,7 @@ class Database:
         else:
             return []
 
-        if status_filter:
+        if status_filter and status_filter != "Все":
             if "WHERE" in query.upper():
                 query += f" AND r.requeststatus = '{status_filter}'"
             else:
@@ -162,7 +162,7 @@ class Database:
             LEFT JOIN users u ON r.masterid = u.userid
             JOIN users c ON r.clientid = c.userid
         """
-        if status_filter:
+        if status_filter and status_filter != "Все":
             query += f" WHERE r.requeststatus = '{status_filter}'"
         query += " ORDER BY r.startdate DESC"
 
@@ -237,27 +237,36 @@ class Database:
 
     def get_all_users(self) -> List[Dict]:
         """Получение всех пользователей"""
-        query = "SELECT userid, fio, type FROM users ORDER BY userid"
+        query = "SELECT userid, fio, login, type FROM users ORDER BY userid"
         result = self.execute_query(query)
         if result:
-            return [{'userid': row[0], 'fio': row[1], 'type': row[2]} for row in result]
+            return [{
+                'userid': row[0],
+                'fio': row[1],
+                'login': row[2],
+                'type': row[3]
+            } for row in result]
         return []
 
     def create_user(self, fio: str, phone: str, login: str, password: str, user_type: str) -> Optional[int]:
-        """Создание нового пользователя (только для администратора)"""
-        query = """
-            INSERT INTO users (fio, phone, login, password, type) 
-            VALUES (%s, %s, %s, %s, %s)
-            RETURNING userid
-        """
-        result = self.execute_query(query, (fio, phone, login, password, user_type))
-        if result:
-            return result[0][0]
-        return None
+        """Создание нового пользователя"""
+        try:
+            query = """
+                INSERT INTO users (fio, phone, login, password, type) 
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING userid
+            """
+            result = self.execute_query(query, (fio, phone, login, password, user_type))
+            if result:
+                return result[0][0]
+            return None
+        except Exception as e:
+            print(f"Ошибка создания пользователя: {e}")
+            return None
 
     def update_user(self, user_id: int, fio: str = None, phone: str = None,
                     login: str = None, password: str = None, user_type: str = None) -> bool:
-        """Обновление данных пользователя (только для администратора)"""
+        """Обновление данных пользователя"""
         updates = []
         params = []
 
@@ -286,7 +295,7 @@ class Database:
         return True
 
     def delete_user(self, user_id: int) -> bool:
-        """Удаление пользователя (только для администратора)"""
+        """Удаление пользователя"""
         query = "DELETE FROM users WHERE userid = %s AND type != 'Администратор'"
         self.execute_query(query, (user_id,))
         return True
