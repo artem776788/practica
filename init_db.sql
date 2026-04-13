@@ -63,3 +63,15 @@ INSERT INTO comments (commentID, message, masterID, requestID) VALUES
 SELECT COUNT(*) FROM users;
 SELECT COUNT(*) FROM repair_requests;
 SELECT COUNT(*) FROM comments;
+
+-- Добавляем роль Администратор в CHECK constraint
+-- Сначала удаляем старый constraint
+ALTER TABLE users DROP CONSTRAINT users_type_check;
+
+-- Создаем новый constraint с добавлением Администратор
+ALTER TABLE users ADD CONSTRAINT users_type_check 
+CHECK (type IN ('Администратор', 'Менеджер', 'Мастер', 'Оператор', 'Заказчик'));
+
+-- Добавляем пользователя-администратора
+INSERT INTO users (userID, fio, phone, login, password, type) VALUES
+(11, 'Чистяков Артём Сергеевич', '80000000000', 'admin', 'admin123', 'Администратор');
